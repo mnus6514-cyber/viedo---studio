@@ -1,207 +1,319 @@
-<!doctype html>
-<html lang="en"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>My AI Video Studio</title>
 <style>
-:root{--bg:#0f1115;--card:#181b22;--bd:#2a2f3a;--tx:#e8eaf0;--mu:#8b93a7;--ac:#6c8cff}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--tx);font:15px system-ui,sans-serif}
-main{max-width:900px;margin:auto;padding:12px}h1{font-size:20px;margin:8px 0}
-.card{background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:12px;margin:10px 0}
-label{display:block;font-size:12px;color:var(--mu);margin:8px 0 3px}
-input,select,textarea,button{width:100%;background:#0f1218;color:var(--tx);border:1px solid var(--bd);border-radius:8px;padding:9px;font:inherit}
-textarea{min-height:70px;resize:vertical}
-button{background:var(--ac);color:#fff;border:0;cursor:pointer;font-weight:600;margin-top:8px}
-button.sec{background:#2a2f3a}
-.row{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px}
-.tabs{display:flex;gap:6px}.tabs button{background:#2a2f3a;margin:0;font-size:13px;padding:8px 4px}.tabs button.on{background:var(--ac)}
-.tab{display:none}.tab.on{display:block}
-.bar{height:6px;background:#0f1218;border-radius:6px;overflow:hidden;margin-top:4px}.bar i{display:block;height:100%;width:0;background:var(--ac)}
-.drop{border:2px dashed var(--bd);border-radius:10px;padding:18px;text-align:center;color:var(--mu);cursor:pointer;margin-top:8px}
-.thumbs{display:grid;grid-template-columns:repeat(auto-fill,minmax(125px,1fr));gap:8px;margin-top:8px}
-.thumbs div{background:#0f1218;border-radius:8px;padding:4px}.thumbs img{width:100%;height:80px;object-fit:cover;border-radius:6px}
-.thumbs input{padding:4px;font-size:11px}.thumbs button{padding:3px;font-size:11px;margin-top:4px}
-.job{border-top:1px solid var(--bd);padding:8px 0}.job video{width:100%;max-height:260px;margin-top:6px;border-radius:8px}
-.mu{color:var(--mu);font-size:12px}
-#warn{display:none;background:#5a1f1f;padding:8px;border-radius:8px;margin:8px 0}a{color:var(--ac)}
-</style></head><body><main>
+:root{--bg:#0f1624;--card:#18223a;--line:#2b3a5c;--txt:#e8eefc;--mute:#93a3c4;--acc:#38bdf8;--ok:#22c55e;--bad:#ef4444}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--txt);font:15px/1.4 system-ui,sans-serif;padding:16px}
+.wrap{max-width:900px;margin:0 auto}
+h1{font-size:22px;margin:4px 0 14px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:14px}
+label{display:block;font-size:12px;color:var(--mute);margin:8px 0 4px}
+input,select,textarea{width:100%;background:#0f1a30;color:var(--txt);border:1px solid var(--line);border-radius:8px;padding:10px;font:inherit}
+textarea{min-height:72px;resize:vertical}
+button{background:var(--acc);color:#04202e;border:0;border-radius:8px;padding:12px;font:inherit;font-weight:700;cursor:pointer;width:100%;margin-top:10px}
+button.sec{background:#2b3a5c;color:var(--txt)}
+button.small{width:auto;padding:6px 12px;margin:0;font-size:13px}
+button:disabled{opacity:.5;cursor:not-allowed}
+.tabs{display:flex;gap:8px;margin-bottom:8px}
+.tabs button{margin:0;background:#2b3a5c;color:var(--txt)}
+.tabs button.on{background:var(--acc);color:#04202e}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.msg{padding:10px;border-radius:8px;font-size:13px;margin-top:10px;display:none}
+.msg.bad{display:block;background:#7f1d1d;color:#fff}
+.msg.ok{display:block;background:#14532d;color:#fff}
+.hide{display:none}
+.job{border:1px solid var(--line);border-radius:10px;padding:10px;margin-top:10px;background:#0f1a30}
+.job .top{display:flex;justify-content:space-between;gap:8px;align-items:center}
+.job .p{font-size:13px;color:var(--mute);margin:4px 0;word-break:break-word}
+.bar{height:6px;background:#2b3a5c;border-radius:4px;overflow:hidden;margin:6px 0}
+.bar i{display:block;height:100%;background:var(--acc);width:0}
+.tag{font-size:12px;padding:2px 8px;border-radius:99px;background:#2b3a5c}
+.tag.done{background:var(--ok);color:#04200f}.tag.error,.tag.cancelled{background:var(--bad)}
+video{width:100%;border-radius:8px;margin-top:6px;background:#000}
+a.dl{color:var(--acc);font-size:13px}
+.note{font-size:12px;color:var(--mute);margin-top:6px}
+</style>
+</head>
+<body>
+<div class="wrap">
 <h1>🎬 My AI Video Studio</h1>
 
 <div class="card">
-<label>Backend URL (printed by the Colab cell)</label>
-<input id="base" placeholder="https://xxxx.trycloudflare.com">
-<button onclick="saveBase()">Save &amp; connect</button>
-<div id="hl" class="mu" style="margin-top:6px">Not connected</div>
-</div>
-<div id="warn">⚠️ Backend not reachable. Make sure the Colab tab is still running. If you restarted it, paste the newest URL above.</div>
-
-<div class="card">
-<div class="tabs">
-<button class="on" data-t="t1">Text → Video</button>
-<button data-t="t2">Images → Video</button>
-<button data-t="t3">Long video</button>
-</div>
-
-<div id="t1" class="tab on">
-<label>Prompt</label><textarea id="prompt" placeholder="A slow cinematic drone shot over a green valley at sunrise"></textarea>
-<button onclick="genT2V()">Generate clip</button>
-</div>
-
-<div id="t2" class="tab">
-<label>Default motion prompt (each image can have its own below)</label>
-<textarea id="prompt2" placeholder="The camera slowly pushes in, soft natural movement"></textarea>
-<div class="drop" id="drop">Drop many images here or tap to choose<input id="files" type="file" accept="image/*" multiple hidden></div>
-<div id="thumbs" class="thumbs"></div>
-<div class="bar"><i id="up"></i></div><div id="upt" class="mu"></div>
-<button onclick="genI2V()">Make one clip per image</button>
-</div>
-
-<div id="t3" class="tab">
-<label>Scenes: one per line. Each scene continues from the last frame of the previous clip.</label>
-<textarea id="scenes" style="min-height:130px" placeholder="A quiet village at dawn, mist over the roofs&#10;The camera moves down a stone street&#10;A baker opens his shop, warm light inside"></textarea>
-<label>Optional start image for scene 1</label><input id="startimg" type="file" accept="image/*">
-<button onclick="genLong()">Generate all scenes</button>
-<div class="mu">When all clips are done, they are ticked below. Press “Join selected clips”.</div>
-</div>
+  <label>Backend URL</label>
+  <input id="url" placeholder="https://xxxx.ngrok-free.dev" autocapitalize="off" autocorrect="off" spellcheck="false">
+  <button id="connect">Save &amp; connect</button>
+  <div id="status" class="note">Not connected</div>
+  <div id="err" class="msg"></div>
 </div>
 
 <div class="card">
-<div class="row">
-<div><label>Size</label><select id="size"><option value="704x480">704×480 landscape</option><option value="480x704">480×704 portrait</option><option value="512x512">512×512 square</option></select></div>
-<div><label>Seconds per clip</label><select id="sec"><option>2</option><option>3</option><option selected>4</option><option>5</option><option>6</option></select></div>
-<div><label>Steps</label><input id="steps" type="number" value="30" min="10" max="60"></div>
-<div><label>Seed (blank = random)</label><input id="seed" type="number"></div>
-</div>
-<label>Negative prompt</label><input id="neg" value="worst quality, blurry, distorted, watermark">
+  <div class="tabs">
+    <button data-tab="t2v" class="on">Text → Video</button>
+    <button data-tab="i2v">Images → Video</button>
+    <button data-tab="long">Long video</button>
+  </div>
+
+  <div id="tab-t2v">
+    <label>Prompt</label>
+    <textarea id="p1">A slow cinematic drone shot over a green valley at sunrise</textarea>
+    <button id="go1">Generate clip</button>
+  </div>
+
+  <div id="tab-i2v" class="hide">
+    <label>Images (one clip per image)</label>
+    <input type="file" id="imgs" accept="image/*" multiple>
+    <label>Prompt (what should move)</label>
+    <textarea id="p2">The scene slowly comes alive with gentle natural motion</textarea>
+    <label><input type="checkbox" id="stitch2" style="width:auto"> Join all clips into one video</label>
+    <button id="go2">Generate from images</button>
+  </div>
+
+  <div id="tab-long" class="hide">
+    <label>Scenes (one per line, each line = one clip, clips are chained)</label>
+    <textarea id="p3" style="min-height:120px">A slow cinematic drone shot over a green valley at sunrise
+The camera glides down toward a calm river in the valley
+Birds fly over the river as warm light fills the valley</textarea>
+    <label>Start image (optional)</label>
+    <input type="file" id="img3" accept="image/*">
+    <button id="go3">Generate long video</button>
+    <div class="note">Clips are made one after another, then joined automatically. Takes a while.</div>
+  </div>
 </div>
 
 <div class="card">
-<b>Final video</b> <span id="selc" class="mu">0 clips selected</span>
-<div class="row"><div><label>Export format</label><select id="fmt"><option value="1280x720">720p (16:9)</option><option value="1920x1080">1080p (16:9)</option><option value="720x1280">Vertical 9:16</option><option value="1080x1080">Square 1:1</option></select></div></div>
-<button onclick="stitch()">Join selected clips</button>
+  <div class="grid">
+    <div><label>Size</label>
+      <select id="size">
+        <option value="704x480">704×480 landscape</option>
+        <option value="480x704">480×704 portrait</option>
+        <option value="512x512">512×512 square</option>
+        <option value="576x320">576×320 fast</option>
+      </select></div>
+    <div><label>Seconds per clip</label>
+      <select id="secs"><option>2</option><option selected>4</option><option>6</option></select></div>
+    <div><label>Steps</label><input id="steps" type="number" value="30" min="10" max="60"></div>
+    <div><label>Seed (blank = random)</label><input id="seed" type="number" placeholder="random"></div>
+  </div>
+  <label>Negative prompt</label>
+  <input id="neg" value="worst quality, blurry, distorted, watermark">
 </div>
 
-<div class="card"><b>Clips &amp; history</b><div id="jobs"></div></div>
-</main>
+<div class="card">
+  <div class="top" style="display:flex;justify-content:space-between;align-items:center">
+    <strong>Jobs</strong>
+    <button id="refresh" class="sec small">Refresh</button>
+  </div>
+  <div id="jobs"><div class="note">No jobs yet.</div></div>
+</div>
+</div>
 
 <script>
-const $=s=>document.querySelector(s);
-const esc=s=>String(s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-let base=localStorage.getItem('base')||'', imgs=[], sel=[], els={};
-$('#base').value=base;
+const $ = s => document.querySelector(s);
+const DEFAULT_URL = "https://buffer-arrange-diminish.ngrok-free.dev";
+let base = "", connected = false, timer = null;
+const cards = {};          // job id -> DOM card
+const blobs = {};          // job id -> blob url
+const pendingStitch = [];  // [{ids:[...], w, h}]
 
-document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>{
-  document.querySelectorAll('.tabs button').forEach(x=>x.classList.toggle('on',x===b));
-  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t.id===b.dataset.t));
-});
+function clean(u){
+  u = (u||"").trim().replace(/\/+$/,"");
+  if(u && !/^https?:\/\//i.test(u)) u = "https://" + u;
+  return u;
+}
+function api(path, opts = {}){
+  opts.headers = Object.assign({"ngrok-skip-browser-warning":"true"}, opts.headers || {});
+  return fetch(base + path, opts);
+}
+function showErr(t){ const e=$("#err"); e.className="msg bad"; e.textContent=t; }
+function showOk(t){ const e=$("#err"); e.className="msg ok"; e.textContent=t; }
+function clearMsg(){ $("#err").className="msg"; }
 
-async function api(path,opt){
-  const r=await fetch(base+path,opt);
-  if(!r.ok){let m=r.status;try{m=(await r.json()).detail||m}catch(e){}throw new Error(m)}
-  return r.json();
-}
-function saveBase(){base=$('#base').value.trim().replace(/\/+$/,'');localStorage.setItem('base',base);ping();refresh();}
-async function ping(){
-  try{const h=await api('/api/health');$('#hl').textContent='Connected: '+h.gpu+' · free VRAM '+h.vram_free_gb+' GB';$('#warn').style.display='none';}
-  catch(e){$('#hl').textContent='Not connected';$('#warn').style.display=base?'block':'none';}
-}
-function fd(o,file){const f=new FormData();for(const k in o)f.append(k,o[k]);if(file)f.append('image',file);return f;}
-function common(){
-  const [w,h]=$('#size').value.split('x');
-  return {negative:$('#neg').value,width:w,height:h,frames:Math.round($('#sec').value*24)+1,fps:24,steps:$('#steps').value||30,guidance:3,seed:$('#seed').value||-1};
-}
-function need(){if(!base){alert('Paste the backend URL first');return false}return true}
-const P=(v,d)=>(v&&v.trim())||d;
-
-async function genT2V(){
-  if(!need())return;
-  try{await api('/api/jobs',{method:'POST',body:fd({mode:'t2v',prompt:P($('#prompt').value,'a cinematic scene'),...common()})});refresh();}
-  catch(e){alert(e.message)}
-}
-
-async function addFiles(fl){
-  const a=[...fl].filter(f=>f.type.startsWith('image/'));
-  for(let i=0;i<a.length;i+=25){
-    a.slice(i,i+25).forEach(f=>imgs.push({file:f,url:URL.createObjectURL(f),prompt:''}));
-    renderThumbs();await new Promise(r=>setTimeout(r,30));
+async function connect(){
+  clearMsg();
+  base = clean($("#url").value);
+  $("#url").value = base;
+  if(!base){ showErr("Backend URL ထည့်ပါ"); return; }
+  localStorage.setItem("backend", base);
+  $("#status").textContent = "Connecting...";
+  try{
+    const r = await api("/api/health");
+    if(!r.ok) throw new Error("HTTP " + r.status);
+    const h = await r.json();
+    connected = true;
+    $("#status").textContent = "Connected ✓  GPU: " + h.gpu + (h.vram_free_gb ? "  (" + h.vram_free_gb + " GB free)" : "");
+    if(h.gpu.startsWith("NONE")) showErr("GPU မရှိပါ။ Colab: Runtime → Change runtime type → T4 GPU ပြီး ပြန် run ပါ");
+    startPolling();
+  }catch(e){
+    connected = false;
+    $("#status").textContent = "Not connected";
+    showErr("Backend ချိတ်မရပါ။ Colab tab ပွင့်နေသလား၊ cell run နေသလား၊ URL မှန်သလား စစ်ပါ။ (" + e.message + ")");
   }
 }
-function renderThumbs(){
-  $('#thumbs').innerHTML=imgs.map((it,i)=>`<div><img src="${it.url}" loading="lazy" decoding="async"><input data-i="${i}" value="${esc(it.prompt)}" placeholder="own prompt"><button class="sec" data-del="${i}">Remove</button></div>`).join('');
-}
-$('#drop').onclick=()=>$('#files').click();
-$('#files').onchange=e=>{addFiles(e.target.files);e.target.value='';};
-$('#drop').ondragover=e=>e.preventDefault();
-$('#drop').ondrop=e=>{e.preventDefault();addFiles(e.dataTransfer.files);};
-$('#thumbs').oninput=e=>{if(e.target.dataset.i!==undefined)imgs[e.target.dataset.i].prompt=e.target.value;};
-$('#thumbs').onclick=e=>{if(e.target.dataset.del!==undefined){imgs.splice(+e.target.dataset.del,1);renderThumbs();}};
 
-async function genI2V(){
-  if(!need()||!imgs.length)return;
-  const c=common(),n=imgs.length;
+function params(){
+  const [w,h] = $("#size").value.split("x").map(Number);
+  return {w, h, secs:+$("#secs").value, steps:+$("#steps").value || 30,
+          seed:$("#seed").value === "" ? -1 : +$("#seed").value, neg:$("#neg").value};
+}
+async function submit({mode, prompt, prev, image}){
+  const p = params();
+  const fd = new FormData();
+  fd.append("mode", mode);
+  fd.append("prompt", prompt);
+  fd.append("negative", p.neg);
+  fd.append("width", p.w);
+  fd.append("height", p.h);
+  fd.append("frames", p.secs * 24 + 1);
+  fd.append("fps", 24);
+  fd.append("steps", p.steps);
+  fd.append("seed", p.seed);
+  if(prev) fd.append("prev", prev);
+  if(image) fd.append("image", image);
+  const r = await api("/api/jobs", {method:"POST", body:fd});
+  if(!r.ok){
+    let d = ""; try{ d = (await r.json()).detail; }catch(_){}
+    throw new Error(d || ("HTTP " + r.status));
+  }
+  return r.json();
+}
+function needConn(){
+  if(!connected){ showErr("အရင် Save & connect နှိပ်ပါ"); return false; }
+  clearMsg(); return true;
+}
+async function busy(btn, fn){
+  btn.disabled = true;
+  try{ await fn(); }catch(e){ showErr(e.message); }
+  btn.disabled = false;
+  poll();
+}
+
+$("#go1").onclick = e => busy(e.target, async () => {
+  if(!needConn()) return;
+  const t = $("#p1").value.trim(); if(!t) throw new Error("Prompt ရေးပါ");
+  await submit({mode:"t2v", prompt:t});
+  showOk("Queue ထဲ ထည့်ပြီးပါပြီ");
+});
+
+$("#go2").onclick = e => busy(e.target, async () => {
+  if(!needConn()) return;
+  const files = [...$("#imgs").files]; if(!files.length) throw new Error("ပုံ ရွေးပါ");
+  const t = $("#p2").value.trim() || "gentle natural motion";
+  const ids = [];
+  for(const f of files){ ids.push((await submit({mode:"i2v", prompt:t, image:f})).id); }
+  if($("#stitch2").checked && ids.length > 1){
+    const p = params(); pendingStitch.push({ids, w:p.w, h:p.h});
+  }
+  showOk(files.length + " clip queue ထဲ ထည့်ပြီးပါပြီ");
+});
+
+$("#go3").onclick = e => busy(e.target, async () => {
+  if(!needConn()) return;
+  const lines = $("#p3").value.split("\n").map(s => s.trim()).filter(Boolean);
+  if(!lines.length) throw new Error("Scene တစ်ကြောင်းအနည်းဆုံး ရေးပါ");
+  const start = $("#img3").files[0] || null;
+  const ids = []; let prev = null;
+  for(let i = 0; i < lines.length; i++){
+    let j;
+    if(i === 0) j = await submit(start ? {mode:"i2v", prompt:lines[i], image:start} : {mode:"t2v", prompt:lines[i]});
+    else j = await submit({mode:"i2v", prompt:lines[i], prev});
+    prev = j.id; ids.push(j.id);
+  }
+  const p = params(); pendingStitch.push({ids, w:p.w, h:p.h});
+  showOk(lines.length + " clip queue ထဲ ထည့်ပြီးပါပြီ၊ ပြီးရင် အလိုအလျောက် ပေါင်းပါမယ်");
+});
+
+// ---- tabs ----
+document.querySelectorAll(".tabs button").forEach(b => b.onclick = () => {
+  document.querySelectorAll(".tabs button").forEach(x => x.classList.toggle("on", x === b));
+  ["t2v","i2v","long"].forEach(t => $("#tab-" + t).classList.toggle("hide", t !== b.dataset.tab));
+});
+
+// ---- jobs list ----
+function card(j){
+  const d = document.createElement("div");
+  d.className = "job";
+  d.innerHTML = '<div class="top"><span class="tag"></span><button class="sec small cx">Cancel</button></div>' +
+    '<div class="p"></div><div class="bar"><i></i></div><div class="err p"></div><div class="media"></div>';
+  d.querySelector(".cx").onclick = async () => { await api("/api/jobs/" + j.id + "/cancel", {method:"POST"}); poll(); };
+  return d;
+}
+async function loadVideo(j, d){
+  if(blobs[j.id] !== undefined) return;
+  blobs[j.id] = null;
   try{
-    for(let i=0;i<n;i++){
-      const it=imgs[i];
-      await api('/api/jobs',{method:'POST',body:fd({mode:'i2v',prompt:P(it.prompt,P($('#prompt2').value,'gentle natural motion')),...c},it.file)});
-      $('#up').style.width=((i+1)/n*100)+'%';$('#upt').textContent='Sent '+(i+1)+' / '+n;
-    }
-    imgs=[];renderThumbs();refresh();
-  }catch(e){alert(e.message)}
+    const r = await api("/api/jobs/" + j.id + "/video");
+    if(!r.ok) throw new Error();
+    blobs[j.id] = URL.createObjectURL(await r.blob());
+    const m = d.querySelector(".media");
+    m.innerHTML = '<video controls playsinline></video><a class="dl" download="' + j.id + '.mp4">⬇ Download</a>';
+    m.querySelector("video").src = blobs[j.id];
+    m.querySelector("a").href = blobs[j.id];
+  }catch(_){ delete blobs[j.id]; }
 }
-
-async function genLong(){
-  if(!need())return;
-  const scenes=$('#scenes').value.split('\n').map(s=>s.trim()).filter(Boolean);
-  if(!scenes.length)return alert('Write at least one scene');
-  const c=common(),start=$('#startimg').files[0];let prev='';sel=[];
+function render(list){
+  const box = $("#jobs");
+  if(!list.length){ box.innerHTML = '<div class="note">No jobs yet.</div>'; return; }
+  if(box.querySelector(".note")) box.innerHTML = "";
+  list.forEach(j => {
+    let d = cards[j.id];
+    if(!d){ d = cards[j.id] = card(j); box.appendChild(d); }
+    const tag = d.querySelector(".tag");
+    tag.textContent = (j.kind === "stitch" ? "join · " : (j.mode || "") + " · ") + j.status;
+    tag.className = "tag " + j.status;
+    d.querySelector(".p").textContent = j.kind === "stitch" ? "Joined video" : ((j.params && j.params.prompt) || "");
+    d.querySelector(".bar i").style.width = (j.progress || 0) + "%";
+    d.querySelector(".err").textContent = j.error || "";
+    d.querySelector(".cx").style.display = (j.status === "queued" || j.status === "running") ? "" : "none";
+    if(j.status === "done") loadVideo(j, d);
+  });
+  // newest first
+  [...list].reverse().forEach(j => box.prepend(cards[j.id]));
+}
+async function checkStitch(list){
+  const byId = Object.fromEntries(list.map(j => [j.id, j]));
+  for(let i = pendingStitch.length - 1; i >= 0; i--){
+    const s = pendingStitch[i];
+    const st = s.ids.map(id => byId[id] && byId[id].status);
+    if(st.some(x => x === "error" || x === "cancelled")){ pendingStitch.splice(i,1); showErr("Clip တစ်ခု မအောင်မြင်လို့ မပေါင်းတော့ပါ"); }
+    else if(st.every(x => x === "done")){
+      pendingStitch.splice(i,1);
+      try{
+        const W = s.w > s.h ? 1280 : (s.w < s.h ? 720 : 720);
+        const H = s.w > s.h ? 720 : (s.w < s.h ? 1280 : 720);
+        await api("/api/stitch", {method:"POST", headers:{"Content-Type":"application/json"},
+          body:JSON.stringify({job_ids:s.ids, width:W, height:H, fps:24})});
+      }catch(e){ showErr("Join မအောင်မြင်ပါ: " + e.message); }
+    }
+  }
+}
+let polling = false;
+async function poll(){
+  if(!connected || polling) return;
+  polling = true;
   try{
-    for(let i=0;i<scenes.length;i++){
-      const mode=(i===0&&!start)?'t2v':'i2v';
-      const j=await api('/api/jobs',{method:'POST',body:fd({mode,prompt:scenes[i],prev,...c},i===0?start:null)});
-      prev=j.id;sel.push(j.id);
-    }
-    updSel();refresh();
-  }catch(e){alert(e.message)}
+    const r = await api("/api/jobs");
+    if(!r.ok) throw new Error("HTTP " + r.status);
+    const list = (await r.json()).reverse(); // oldest first
+    render(list);
+    await checkStitch(list);
+  }catch(e){
+    connected = false;
+    $("#status").textContent = "Disconnected";
+    showErr("Backend နဲ့ ဆက်သွယ်မှု ပြတ်သွားပါပြီ။ Colab cell ပြန်စစ်ပြီး Save & connect နှိပ်ပါ");
+    clearInterval(timer); timer = null;
+  }
+  polling = false;
 }
+function startPolling(){ if(timer) clearInterval(timer); poll(); timer = setInterval(poll, 3000); }
 
-function updSel(){$('#selc').textContent=sel.length+' clips selected';}
-async function stitch(){
-  if(!need())return;
-  if(!sel.length)return alert('Tick “Add to final video” on some finished clips first');
-  const [w,h]=$('#fmt').value.split('x');
-  try{await api('/api/stitch',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({job_ids:sel,width:+w,height:+h,fps:24})});refresh();}
-  catch(e){alert(e.message)}
-}
-
-$('#jobs').onclick=async e=>{
-  if(e.target.dataset.cancel){try{await api('/api/jobs/'+e.target.dataset.cancel+'/cancel',{method:'POST'});refresh();}catch(x){}}
-};
-$('#jobs').onchange=e=>{
-  const id=e.target.dataset.id;if(!id)return;
-  sel=sel.filter(x=>x!==id);if(e.target.checked)sel.push(id);updSel();
-};
-
-function upsert(j){
-  let e=els[j.id];
-  if(!e){e=els[j.id]=document.createElement('div');e.className='job';
-    e.innerHTML='<div class="top"></div><div class="bar"><i></i></div><div class="body"></div>';$('#jobs').prepend(e);}
-  const p=j.params||{};
-  const title=j.kind==='stitch'?'🎞 Joined video':((j.mode==='t2v'?'📝 ':'🖼 ')+esc((p.prompt||'').slice(0,60)));
-  e.querySelector('.top').innerHTML=title+' <span class="mu">· '+j.status+((j.status==='running'||j.status==='cancelling')?' '+j.progress+'%':'')+'</span>';
-  e.querySelector('.bar i').style.width=(j.progress||0)+'%';
-  const b=e.querySelector('.body');
-  if(j.status==='done'&&!e._d){
-    e._d=1;const u=base+'/api/jobs/'+j.id+'/video';
-    b.innerHTML=(j.kind==='gen'?'<label style="display:flex;gap:6px;align-items:center;margin:4px 0"><input type="checkbox" style="width:auto" data-id="'+j.id+'"'+(sel.includes(j.id)?' checked':'')+'> Add to final video</label>':'')
-      +'<video controls preload="none" src="'+u+'"></video><a href="'+u+'" target="_blank">Open / Save</a>';
-  }else if(j.status==='error'){b.innerHTML='<span style="color:#ff8a8a">'+esc(j.error)+'</span>';}
-  else if(j.status==='cancelled'){b.innerHTML='';}
-  else if((j.status==='queued'||j.status==='running')&&j.kind==='gen'&&!e._c){e._c=1;b.innerHTML='<button class="sec" data-cancel="'+j.id+'">Cancel</button>';}
-}
-async function refresh(){
-  if(!base)return;
-  try{const l=await api('/api/jobs');$('#warn').style.display='none';l.reverse().forEach(upsert);}
-  catch(e){$('#warn').style.display='block';}
-}
-setInterval(refresh,3000);setInterval(()=>base&&ping(),15000);
-if(base){ping();refresh();}
-</script></body></html>
+$("#connect").onclick = connect;
+$("#refresh").onclick = poll;
+$("#url").value = localStorage.getItem("backend") || DEFAULT_URL;
+connect();
+</script>
+</body>
+</html>
