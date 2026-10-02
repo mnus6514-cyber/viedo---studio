@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>My AI Video Studio</title>
+<style>
+:root{--bg:#0f1115;--card:#181b22;--bd:#2a2f3a;--tx:#e8eaf0;--mu:#8b93a7;--ac:#6c8cff}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--tx);font:15px system-ui,sans-serif}
+main{max-width:900px;margin:auto;padding:12px}h1{font-size:20px;margin:8px 0}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:12px;margin:10px 0}
+label{display:block;font-size:12px;color:var(--mu);margin:8px 0 3px}
+input,select,textarea,button{width:100%;background:#0f1218;color:var(--tx);border:1px solid var(--bd);border-radius:8px;padding:9px;font:inherit}
+textarea{min-height:70px;resize:vertical}
+button{background:var(--ac);color:#fff;border:0;cursor:pointer;font-weight:600;margin-top:8px}
+button.sec{background:#2a2f3a}
+.row{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px}
+.tabs{display:flex;gap:6px}.tabs button{background:#2a2f3a;margin:0;font-size:13px;padding:8px 4px}.tabs button.on{background:var(--ac)}
+.tab{display:none}.tab.on{display:block}
+.bar{height:6px;background:#0f1218;border-radius:6px;overflow:hidden;margin-top:4px}.bar i{display:block;height:100%;width:0;background:var(--ac)}
+.drop{border:2px dashed var(--bd);border-radius:10px;padding:18px;text-align:center;color:var(--mu);cursor:pointer;margin-top:8px}
+.thumbs{display:grid;grid-template-columns:repeat(auto-fill,minmax(125px,1fr));gap:8px;margin-top:8px}
+.thumbs div{background:#0f1218;border-radius:8px;padding:4px}.thumbs img{width:100%;height:80px;object-fit:cover;border-radius:6px}
+.thumbs input{padding:4px;font-size:11px}.thumbs button{padding:3px;font-size:11px;margin-top:4px}
+.job{border-top:1px solid var(--bd);padding:8px 0}.job video{width:100%;max-height:260px;margin-top:6px;border-radius:8px}
+.mu{color:var(--mu);font-size:12px}
+#warn{display:none;background:#5a1f1f;padding:8px;border-radius:8px;margin:8px 0}a{color:var(--ac)}
+</style></head><body><main>
+<h1>🎬 My AI Video Studio</h1>
+
+<div class="card">
+<label>Backend URL (printed by the Colab cell)</label>
+<input id="base" placeholder="https://xxxx.trycloudflare.com">
+<button onclick="saveBase()">Save &amp; connect</button>
+<div id="hl" class="mu" style="margin-top:6px">Not connected</div>
+</div>
+<div id="warn">⚠️ Backend not reachable. Make sure the Colab tab is still running. If you restarted it, paste the newest URL above.</div>
+
+<div class="card">
+<div class="tabs">
+<button class="on" data-t="t1">Text → Video</button>
+<button data-t="t2">Images → Video</button>
+<button data-t="t3">Long video</button>
+</div>
+
+<div id="t1" class="tab on">
+<label>Prompt</label><textarea id="prompt" placeholder="A slow cinematic drone shot over a green valley at sunrise"></textarea>
+<button onclick="genT2V()">Generate clip</button>
+</div>
+
+<div id="t2" class="tab">
+<label>Default motion prompt (each image can have its own below)</label>
+<textarea id="prompt2" placeholder="The camera slowly pushes in, soft natural movement"></textarea>
+<div class="drop" id="drop">Drop many images here or tap to choose<input id="files" type="file" accept="image/*" multiple hidden></div>
+<div id="thumbs" class="thumbs"></div>
+<div class="bar"><i id="up"></i></div><div id="upt" class="mu"></div>
+<button onclick="genI2V()">Make one clip per image</button>
+</div>
+
+<div id="t3" class="tab">
+<label>Scenes: one per line. Each scene continues from the last frame of the previous clip.</label>
+<textarea id="scenes" style="min-height:130px" placeholder="A quiet village at dawn, mist over the roofs&#10;The camera moves down a stone street&#10;A baker opens his shop, warm light inside"></textarea>
+<label>Optional start image for scene 1</label><input id="startimg" type="file" accept="image/*">
+<button onclick="genLong()">Generate all scenes</button>
+<div class="mu">When all clips are done, they are ticked below. Press “Join selected clips”.</div>
+</div>
+</div>
+
+<div class="card">
+<div class="row">
+<div><label>Size</label><select id="size"><option value="704x480">704×480 landscape</option><option value="480x704">480×704 portrait</option><option value="512x512">512×512 square</option></select></div>
+<div><label>Seconds per clip</label><select id="sec"><option>2</option><option>3</option><option selected>4</option><option>5</option><option>6</option></select></div>
+<div><label>Steps</label><input id="steps" type="number" value="30" min="10" max="60"></div>
+<div><label>Seed (blank = random)</label><input id="seed" type="number"></div>
+</div>
+<label>Negative prompt</label><input id="neg" value="worst quality, blurry, distorted, watermark">
+</div>
+
+<div class="card">
+<b>Final video</b> <span id="selc" class="mu">0 clips selected</span>
+<div class="row"><div><label>Export format</label><select id="fmt"><option value="1280x720">720p (16:9)</option><option value="1920x1080">1080p (16:9)</option><option value="720x1280">Vertical 9:16</option><option value="1080x1080">Square 1:1</option></select></div></div>
+<button onclick="stitch()">Join selected clips</button>
+</div>
+
+<div class="card"><b>Clips &amp; history</b><div id="jobs"></div></div>
+</main>
+
+<script>
+const $=s=>document.querySelector(s);
+const esc=s=>String(s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+let base=localStorage.getItem('base')||'', imgs=[], sel=[], els={};
+$('#base').value=base;
+
+document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('.tabs button').forEach(x=>x.classList.toggle('on',x===b));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t.id===b.dataset.t));
+});
+
+async function api(path,opt){
+  const r=await fetch(base+path,opt);
+  if(!r.ok){let m=r.status;try{m=(await r.json()).detail||m}catch(e){}throw new Error(m)}
+  return r.json();
+}
+function saveBase(){base=$('#base').value.trim().replace(/\/+$/,'');localStorage.setItem('base',base);ping();refresh();}
+async function ping(){
+  try{const h=await api('/api/health');$('#hl').textContent='Connected: '+h.gpu+' · free VRAM '+h.vram_free_gb+' GB';$('#warn').style.display='none';}
+  catch(e){$('#hl').textContent='Not connected';$('#warn').style.display=base?'block':'none';}
+}
+function fd(o,file){const f=new FormData();for(const k in o)f.append(k,o[k]);if(file)f.append('image',file);return f;}
+function common(){
+  const [w,h]=$('#size').value.split('x');
+  return {negative:$('#neg').value,width:w,height:h,frames:Math.round($('#sec').value*24)+1,fps:24,steps:$('#steps').value||30,guidance:3,seed:$('#seed').value||-1};
+}
+function need(){if(!base){alert('Paste the backend URL first');return false}return true}
+const P=(v,d)=>(v&&v.trim())||d;
+
+async function genT2V(){
+  if(!need())return;
+  try{await api('/api/jobs',{method:'POST',body:fd({mode:'t2v',prompt:P($('#prompt').value,'a cinematic scene'),...common()})});refresh();}
+  catch(e){alert(e.message)}
+}
+
+async function addFiles(fl){
+  const a=[...fl].filter(f=>f.type.startsWith('image/'));
+  for(let i=0;i<a.length;i+=25){
+    a.slice(i,i+25).forEach(f=>imgs.push({file:f,url:URL.createObjectURL(f),prompt:''}));
+    renderThumbs();await new Promise(r=>setTimeout(r,30));
+  }
+}
+function renderThumbs(){
+  $('#thumbs').innerHTML=imgs.map((it,i)=>`<div><img src="${it.url}" loading="lazy" decoding="async"><input data-i="${i}" value="${esc(it.prompt)}" placeholder="own prompt"><button class="sec" data-del="${i}">Remove</button></div>`).join('');
+}
+$('#drop').onclick=()=>$('#files').click();
+$('#files').onchange=e=>{addFiles(e.target.files);e.target.value='';};
+$('#drop').ondragover=e=>e.preventDefault();
+$('#drop').ondrop=e=>{e.preventDefault();addFiles(e.dataTransfer.files);};
+$('#thumbs').oninput=e=>{if(e.target.dataset.i!==undefined)imgs[e.target.dataset.i].prompt=e.target.value;};
+$('#thumbs').onclick=e=>{if(e.target.dataset.del!==undefined){imgs.splice(+e.target.dataset.del,1);renderThumbs();}};
+
+async function genI2V(){
+  if(!need()||!imgs.length)return;
+  const c=common(),n=imgs.length;
+  try{
+    for(let i=0;i<n;i++){
+      const it=imgs[i];
+      await api('/api/jobs',{method:'POST',body:fd({mode:'i2v',prompt:P(it.prompt,P($('#prompt2').value,'gentle natural motion')),...c},it.file)});
+      $('#up').style.width=((i+1)/n*100)+'%';$('#upt').textContent='Sent '+(i+1)+' / '+n;
+    }
+    imgs=[];renderThumbs();refresh();
+  }catch(e){alert(e.message)}
+}
+
+async function genLong(){
+  if(!need())return;
+  const scenes=$('#scenes').value.split('\n').map(s=>s.trim()).filter(Boolean);
+  if(!scenes.length)return alert('Write at least one scene');
+  const c=common(),start=$('#startimg').files[0];let prev='';sel=[];
+  try{
+    for(let i=0;i<scenes.length;i++){
+      const mode=(i===0&&!start)?'t2v':'i2v';
+      const j=await api('/api/jobs',{method:'POST',body:fd({mode,prompt:scenes[i],prev,...c},i===0?start:null)});
+      prev=j.id;sel.push(j.id);
+    }
+    updSel();refresh();
+  }catch(e){alert(e.message)}
+}
+
+function updSel(){$('#selc').textContent=sel.length+' clips selected';}
+async function stitch(){
+  if(!need())return;
+  if(!sel.length)return alert('Tick “Add to final video” on some finished clips first');
+  const [w,h]=$('#fmt').value.split('x');
+  try{await api('/api/stitch',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({job_ids:sel,width:+w,height:+h,fps:24})});refresh();}
+  catch(e){alert(e.message)}
+}
+
+$('#jobs').onclick=async e=>{
+  if(e.target.dataset.cancel){try{await api('/api/jobs/'+e.target.dataset.cancel+'/cancel',{method:'POST'});refresh();}catch(x){}}
+};
+$('#jobs').onchange=e=>{
+  const id=e.target.dataset.id;if(!id)return;
+  sel=sel.filter(x=>x!==id);if(e.target.checked)sel.push(id);updSel();
+};
+
+function upsert(j){
+  let e=els[j.id];
+  if(!e){e=els[j.id]=document.createElement('div');e.className='job';
+    e.innerHTML='<div class="top"></div><div class="bar"><i></i></div><div class="body"></div>';$('#jobs').prepend(e);}
+  const p=j.params||{};
+  const title=j.kind==='stitch'?'🎞 Joined video':((j.mode==='t2v'?'📝 ':'🖼 ')+esc((p.prompt||'').slice(0,60)));
+  e.querySelector('.top').innerHTML=title+' <span class="mu">· '+j.status+((j.status==='running'||j.status==='cancelling')?' '+j.progress+'%':'')+'</span>';
+  e.querySelector('.bar i').style.width=(j.progress||0)+'%';
+  const b=e.querySelector('.body');
+  if(j.status==='done'&&!e._d){
+    e._d=1;const u=base+'/api/jobs/'+j.id+'/video';
+    b.innerHTML=(j.kind==='gen'?'<label style="display:flex;gap:6px;align-items:center;margin:4px 0"><input type="checkbox" style="width:auto" data-id="'+j.id+'"'+(sel.includes(j.id)?' checked':'')+'> Add to final video</label>':'')
+      +'<video controls preload="none" src="'+u+'"></video><a href="'+u+'" target="_blank">Open / Save</a>';
+  }else if(j.status==='error'){b.innerHTML='<span style="color:#ff8a8a">'+esc(j.error)+'</span>';}
+  else if(j.status==='cancelled'){b.innerHTML='';}
+  else if((j.status==='queued'||j.status==='running')&&j.kind==='gen'&&!e._c){e._c=1;b.innerHTML='<button class="sec" data-cancel="'+j.id+'">Cancel</button>';}
+}
+async function refresh(){
+  if(!base)return;
+  try{const l=await api('/api/jobs');$('#warn').style.display='none';l.reverse().forEach(upsert);}
+  catch(e){$('#warn').style.display='block';}
+}
+setInterval(refresh,3000);setInterval(()=>base&&ping(),15000);
+if(base){ping();refresh();}
+</script></body></html>
